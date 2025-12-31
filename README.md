@@ -1,16 +1,51 @@
-# React + Vite
+# 🚀 Custofy CRM
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, responsive web application built using **React**, **Tailwind CSS**, and **Firebase**.  
+This project focuses on clean UI, smooth user experience, and scalable architecture.
 
-Currently, two official plugins are available:
+--- 
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ Features
 
-## React Compiler
+- 🔐 Authentication (Firebase Auth)
+- 📦 Real-time Database (Firestore)
+- 📊 Dashboard with dynamic data
+- 🎨 Modern UI using Tailwind CSS
+- 📱 Fully Responsive Design
+- ⚡ Fast & Optimized Performance
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🛠 Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Frontend:** React, Tailwind CSS
+- **State Management:** Redux Toolkit
+- **Backend / DB:** Firebase Firestore
+- **Authentication:** Firebase Auth
+- **Icons:** Lucide React
+- **Hosting:** Firebase Hosting / Vercel
+
+---
+
+🌐 Live Demo
+
+🔗 Live URL: https://your-project.web.app
+
+---
+
+📌 Future Improvements
+
+-Role-based authentication
+-Dark mode
+-Performance optimization
+-Unit testing
+
+---
+
+
+👨‍💻 Author
+
+Ronak Somaiya
+Frontend Developer | React | UI/UX
+
+GitHub: https://github.com/Ron-36
