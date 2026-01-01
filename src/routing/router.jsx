@@ -12,9 +12,13 @@ import Items from "../pages/dashboard/Items";
 import Invoices from "../pages/dashboard/sales/Invoices";
 import Bills from "../pages/dashboard/purchases/Bills";
 import Inventory from "../pages/dashboard/Inventory";
+import Kanban from "../pages/dashboard/Kanban";
 import AdminProfile from "../pages/AdminProfile";
 import CompanyProfile from "../pages/dashboard/settings/CompanyProfile";
 import AuthGuard from "../components/auth/AuthGuard";
+import PaymentsReceived from "../pages/dashboard/sales/PaymentsReceived";
+import Paymentsmade from "../pages/dashboard/purchases/Paymentsmade";
+import Reports from "../pages/dashboard/Reports";
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -41,6 +45,10 @@ export const router = createBrowserRouter([
         element: <Dashboard />,
       },
       {
+        path: "kanban",
+        element: <Kanban />,
+      },
+      {
         path: "sales/customers",
         element: <Customers />,
       },
@@ -53,6 +61,10 @@ export const router = createBrowserRouter([
         element: <Bills />,
       },
       {
+        path: "purchases/paymentsmade",
+        element: <Paymentsmade />,
+      },
+      {
         path: "items",
         element: <Items />,
       },
@@ -61,8 +73,16 @@ export const router = createBrowserRouter([
         element: <Invoices />,
       },
       {
+        path: "sales/paymentsreceived",
+        element: <PaymentsReceived />,
+      },
+      {
         path: "inventory",
         element: <Inventory />,
+      },
+      {
+        path: "reports",
+        element: <Reports />,
       },
       {
         path: "settings/adminprofile",

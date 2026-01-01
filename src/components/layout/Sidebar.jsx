@@ -95,7 +95,7 @@ export default function Sidebar() {
           >
             <SubNav to="/dashboard/sales/customers" label="Customers" icon={Users} collapsed={collapsed} />
             <SubNav to="/dashboard/sales/invoices" label="Invoices" icon={FileText} collapsed={collapsed} />
-            <SubNav to="/dashboard/sales/payments" label="Payments Received" icon={CreditCard} collapsed={collapsed} />
+            <SubNav to="/dashboard/sales/paymentsreceived" label="Payments Received" icon={CreditCard} collapsed={collapsed} />
           </Accordion>
 
           <Accordion
@@ -107,7 +107,7 @@ export default function Sidebar() {
           >
             <SubNav to="/dashboard/purchases/vendors" label="Vendors" icon={ShoppingBag} collapsed={collapsed} />
             <SubNav to="/dashboard/purchases/bills" label="Bills" icon={FileText} collapsed={collapsed} />
-            <SubNav to="/dashboard/purchases/payments" label="Payments Made" icon={CreditCard} collapsed={collapsed} />
+            <SubNav to="/dashboard/purchases/paymentsmade" label="Payments Made" icon={CreditCard} collapsed={collapsed} />
           </Accordion>
 
           <NavItem to="/dashboard/items" icon={Package} label="Items" collapsed={collapsed} />

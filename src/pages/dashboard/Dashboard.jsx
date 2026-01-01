@@ -3,6 +3,8 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../utils/firebaseConfig";
 import { useSelector } from "react-redux";
 import KpiCard from "../../components/dashboard/KpiCard";
+import SalesPurchaseChart from "../../components/chart/SalesPurchaseChart";
+import MonthlyRevenueChart from "../../components/chart/MonthlyRevenueChart";
 import {
   TrendingUp,
   ShoppingCart,
@@ -130,13 +132,14 @@ export default function Dashboard() {
 
       {/* PLACEHOLDERS FOR NEXT */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow p-6 h-64 flex items-center justify-center text-gray-400">
-          Sales Trend Chart
-        </div>
-        <div className="bg-white rounded-xl shadow p-6 h-64 flex items-center justify-center text-gray-400">
-          Purchase Trend Chart
-        </div>
+        <SalesPurchaseChart/>
+
+        <MonthlyRevenueChart />
       </div>
+
+     
+
+     
     </div>
   );
 }
