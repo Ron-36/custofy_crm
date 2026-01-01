@@ -22,8 +22,7 @@ import {
 import { db } from "../../../utils/firebaseConfig";
 import { useSelector } from "react-redux";
 import { updateInventory } from "../../../utils/updateInventory";
-import { updateInventoryServices } from "../../../utils/inventoryService";
-
+import { checkAvailableStock } from "../../../utils/checkStock";
 
 export default function Invoices() {
   const { authUser } = useSelector((state) => state.auth);
@@ -48,19 +47,16 @@ export default function Invoices() {
     if (!authUser) return;
 
     const fetchAll = async () => {
-      // Customers
       const custSnap = await getDocs(
         query(collection(db, "customers"), where("ownerId", "==", authUser.uid))
       );
       setCustomers(custSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
 
-      // Items
       const itemSnap = await getDocs(
         query(collection(db, "items"), where("ownerId", "==", authUser.uid))
       );
       setItems(itemSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
 
-      // Invoices
       const invSnap = await getDocs(
         query(collection(db, "invoices"), where("ownerId", "==", authUser.uid))
       );
@@ -121,109 +117,131 @@ export default function Invoices() {
     });
   };
 
+  /* ---------------- SAVE INVOICE ---------------- */
 
   const saveInvoice = async (status) => {
-  if (!invoiceData.customer) {
-    toast.error("Please select customer");
-    return;
-  }
-
-  const payload = {
-    ...invoiceData,
-    status,
-    total: totalAmount,
-    ownerId: authUser.uid,
-    createdAt: new Date().toISOString(), // ✅ serializable
-  };
-
-  try {
-    if (editingInvoice) {
-      await updateDoc(doc(db, "invoices", editingInvoice.id), payload);
-
-      // ✅ UPDATE LOCAL STATE
-      setInvoices((prev) =>
-        prev.map((inv) =>
-          inv.id === editingInvoice.id
-            ? { ...payload, id: editingInvoice.id }
-            : inv
-        )
-      );
-    } else {
-      const docRef = await addDoc(collection(db, "invoices"), payload);
-
-      // ✅ ADD TO LOCAL STATE
-      setInvoices((prev) => [
-        ...prev,
-        { ...payload, id: docRef.id },
-      ]);
+    if (!invoiceData.customer) {
+      toast.error("Please select customer");
+      return;
     }
 
-    toast.success(
-      status === "Draft"
-        ? "Invoice saved as Draft"
-        : "Invoice saved successfully"
-    );
+    try {
+      /* 🔒 STOCK CHECK — ONLY FOR SAVED INVOICE */
+      if (status === "Saved") {
+        for (const row of invoiceData.items) {
+          const selectedItem = items.find((i) => i.name === row.item);
+          if (!selectedItem) continue;
 
-    setShowForm(false);
-  } catch (error) {
-    toast.error("Failed to save invoice");
-  }
+          const availableQty = await checkAvailableStock(
+            authUser.uid,
+            selectedItem.id
+          );
 
-   for (const row of invoiceData.items) {
-  await updateInventoryServices({
-    ownerId: authUser.uid,
-    itemId: row.itemId,
-    itemName: row.itemName,
-    unit: row.unit || "pcs",
-    change: -row.qty,              // 🔻 DECREASE
-    reason: "Invoice",
-    referenceId: invoiceId,
-  });
+          if (row.qty > availableQty) {
+            toast.error(
+              `Insufficient stock for ${selectedItem.name}. Available: ${availableQty}`
+            );
+            return; // ⛔ STOP EVERYTHING
+          }
+        }
+      }
 
-  for (const row of invoiceData.items) {
-  await updateInventory({
-    ownerId: authUser.uid,
-    itemName: row.item,
-    unit: "pcs",
-    change: -row.qty,         // ➖ decrease
-    reason: "Sales Invoice",
-    refId: invoiceId,
-  });
+      let invoiceId;
 
- 
-}
+      const payload = {
+        ...invoiceData,
+        status,
+        total: totalAmount,
+        ownerId: authUser.uid,
+        updatedAt: serverTimestamp(),
+      };
 
-}
+      if (editingInvoice) {
+        await updateDoc(doc(db, "invoices", editingInvoice.id), payload);
+        invoiceId = editingInvoice.id;
 
-};
+        setInvoices((prev) =>
+          prev.map((inv) =>
+            inv.id === invoiceId ? { ...payload, id: invoiceId } : inv
+          )
+        );
+      } else {
+        const docRef = await addDoc(collection(db, "invoices"), {
+          ...payload,
+          createdAt: serverTimestamp(),
+        });
+        invoiceId = docRef.id;
 
+        setInvoices((prev) => [...prev, { ...payload, id: invoiceId }]);
+      }
 
-  const editInvoice = (invoice) => {
-    if (invoice.status === "Saved") return;
-    setEditingInvoice(invoice);
-    setInvoiceData(invoice);
-    setShowForm(true);
+      /* 🔻 DECREASE INVENTORY */
+      if (status === "Saved") {
+        for (const row of invoiceData.items) {
+          const selectedItem = items.find((i) => i.name === row.item);
+          if (!selectedItem) continue;
+
+          await updateInventory({
+            ownerId: authUser.uid,
+            itemId: selectedItem.id,
+            itemName: selectedItem.name,
+            unit: selectedItem.unit || "pcs",
+            change: -Number(row.qty),
+            reason: "Sales Invoice",
+            refId: invoiceId,
+          });
+        }
+      }
+
+      toast.success(
+        status === "Draft"
+          ? "Invoice saved as Draft"
+          : "Invoice saved & inventory updated"
+      );
+
+      setShowForm(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save invoice");
+    }
   };
 
-  const deleteInvoice = async (id) => {
-  if (!confirm("Delete this invoice?")) return;
+  /* ---------------- DELETE INVOICE ---------------- */
 
-  try {
-    await deleteDoc(doc(db, "invoices", id));
+  const deleteInvoice = async (invoice) => {
+    if (!confirm("Delete this invoice?")) return;
 
-    // ✅ UPDATE LOCAL STATE
-    setInvoices((prev) => prev.filter((inv) => inv.id !== id));
+    try {
+      if (invoice.status === "Saved") {
+        for (const row of invoice.items) {
+          const selectedItem = items.find((i) => i.name === row.item);
+          if (!selectedItem) continue;
 
-    toast.success("Invoice deleted");
-  } catch (error) {
-    toast.error("Failed to delete invoice");
-  }
-};
+          await updateInventory({
+            ownerId: authUser.uid,
+            itemId: selectedItem.id,
+            itemName: selectedItem.name,
+            unit: selectedItem.unit || "pcs",
+            change: Number(row.qty), // ➕ RESTORE
+            reason: "Invoice Deleted (Stock Reversal)",
+            refId: invoice.id,
+          });
+        }
+      }
+
+      await deleteDoc(doc(db, "invoices", invoice.id));
+
+      setInvoices((prev) => prev.filter((inv) => inv.id !== invoice.id));
+      toast.success("Invoice deleted successfully");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to delete invoice");
+    }
+  };
 
 
   /* ---------------- UI ---------------- */
-
-  return (
+    return (
     <div className="bg-white rounded-xl shadow h-[calc(100vh-8rem)] flex flex-col">
       {/* HEADER */}
       <div className="flex items-center justify-between px-6 py-4 border-b">
@@ -278,7 +296,7 @@ export default function Invoices() {
                         <Pencil size={16} />
                       </button>
                     )}
-                    <button onClick={() => deleteInvoice(inv.id)}>
+                    <button onClick={() => deleteInvoice(inv)}>
                       <Trash2 size={16} className="text-red-600" />
                     </button>
                   </td>
@@ -362,6 +380,8 @@ export default function Invoices() {
                       <input
                         type="number"
                         value={row.qty}
+                        min="1"
+                        required
                         onChange={(e) =>
                           handleItemChange(i, "qty", e.target.value)
                         }
