@@ -1,12 +1,6 @@
 import { useEffect, useState } from "react";
-import {
-  Plus,
-  X,
-  Trash2,
-  Pencil,
-  MinusCircle,
-  PlusCircle,
-} from "lucide-react";
+import { Plus, X, Trash2, Pencil, MinusCircle, PlusCircle } from "lucide-react";
+import jsPDF from "jspdf";
 import { toast } from "react-toastify";
 import {
   collection,
@@ -26,6 +20,7 @@ import { checkAvailableStock } from "../../../utils/checkStock";
 
 export default function Invoices() {
   const { authUser } = useSelector((state) => state.auth);
+  const { profile: companyProfile } = useSelector((state) => state.company);
 
   const [customers, setCustomers] = useState([]);
   const [items, setItems] = useState([]);
@@ -33,6 +28,9 @@ export default function Invoices() {
 
   const [showForm, setShowForm] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
 
   const [invoiceData, setInvoiceData] = useState({
     customer: "",
@@ -42,7 +40,6 @@ export default function Invoices() {
   });
 
   /* ---------------- FETCH DATA ---------------- */
-
   useEffect(() => {
     if (!authUser) return;
 
@@ -67,7 +64,6 @@ export default function Invoices() {
   }, [authUser]);
 
   /* ---------------- UTILITIES ---------------- */
-
   const generateInvoiceNo = () =>
     `INV-${String(invoices.length + 1).padStart(4, "0")}`;
 
@@ -78,8 +74,18 @@ export default function Invoices() {
     0
   );
 
-  /* ---------------- HANDLERS ---------------- */
+  /* ---------------- FILTER ---------------- */
+  const filteredInvoices = invoices.filter((inv) => {
+    const matchSearch =
+      inv.invoiceNo.toLowerCase().includes(search.toLowerCase()) ||
+      inv.customer.toLowerCase().includes(search.toLowerCase());
 
+    const matchStatus = statusFilter === "All" || inv.status === statusFilter;
+
+    return matchSearch && matchStatus;
+  });
+
+  /* ---------------- HANDLERS ---------------- */
   const openNewInvoice = () => {
     setEditingInvoice(null);
     setInvoiceData({
@@ -91,34 +97,35 @@ export default function Invoices() {
     setShowForm(true);
   };
 
-  const handleItemChange = (index, field, value) => {
-    const updated = [...invoiceData.items];
-    updated[index][field] =
-      field === "qty" || field === "rate" ? Number(value) : value;
-    setInvoiceData({ ...invoiceData, items: updated });
-  };
-
-  const addItemRow = () => {
-    if (invoiceData.items.length >= 5) {
-      toast.error("You can add maximum 5 items");
+  const editInvoice = (invoice) => {
+    if (invoice.status === "Saved") {
+      toast.info("Saved invoices cannot be edited");
       return;
     }
+
+    setEditingInvoice(invoice);
     setInvoiceData({
-      ...invoiceData,
-      items: [...invoiceData.items, { item: "", qty: 1, rate: 0 }],
+      customer: invoice.customer,
+      invoiceNo: invoice.invoiceNo,
+      date: invoice.date,
+      items: invoice.items,
     });
+    setShowForm(true);
   };
 
-  const removeItemRow = (index) => {
-    if (invoiceData.items.length === 1) return;
-    setInvoiceData({
-      ...invoiceData,
-      items: invoiceData.items.filter((_, i) => i !== index),
-    });
+  const deleteInvoice = async (invoice) => {
+    if (!window.confirm("Delete this invoice?")) return;
+
+    try {
+      await deleteDoc(doc(db, "invoices", invoice.id));
+      setInvoices((prev) => prev.filter((i) => i.id !== invoice.id));
+      toast.success("Invoice deleted");
+    } catch {
+      toast.error("Failed to delete invoice");
+    }
   };
 
   /* ---------------- SAVE INVOICE ---------------- */
-
   const saveInvoice = async (status) => {
     if (!invoiceData.customer) {
       toast.error("Please select customer");
@@ -126,7 +133,6 @@ export default function Invoices() {
     }
 
     try {
-      /* 🔒 STOCK CHECK — ONLY FOR SAVED INVOICE */
       if (status === "Saved") {
         for (const row of invoiceData.items) {
           const selectedItem = items.find((i) => i.name === row.item);
@@ -138,15 +144,11 @@ export default function Invoices() {
           );
 
           if (row.qty > availableQty) {
-            toast.error(
-              `Insufficient stock for ${selectedItem.name}. Available: ${availableQty}`
-            );
-            return; // ⛔ STOP EVERYTHING
+            toast.error(`Insufficient stock for ${selectedItem.name}`);
+            return;
           }
         }
       }
-
-      let invoiceId;
 
       const payload = {
         ...invoiceData,
@@ -156,13 +158,14 @@ export default function Invoices() {
         updatedAt: serverTimestamp(),
       };
 
+      let invoiceId;
+
       if (editingInvoice) {
         await updateDoc(doc(db, "invoices", editingInvoice.id), payload);
         invoiceId = editingInvoice.id;
-
         setInvoices((prev) =>
-          prev.map((inv) =>
-            inv.id === invoiceId ? { ...payload, id: invoiceId } : inv
+          prev.map((i) =>
+            i.id === invoiceId ? { ...payload, id: invoiceId } : i
           )
         );
       } else {
@@ -171,11 +174,9 @@ export default function Invoices() {
           createdAt: serverTimestamp(),
         });
         invoiceId = docRef.id;
-
         setInvoices((prev) => [...prev, { ...payload, id: invoiceId }]);
       }
 
-      /* 🔻 DECREASE INVENTORY */
       if (status === "Saved") {
         for (const row of invoiceData.items) {
           const selectedItem = items.find((i) => i.name === row.item);
@@ -193,139 +194,170 @@ export default function Invoices() {
         }
       }
 
-      toast.success(
-        status === "Draft"
-          ? "Invoice saved as Draft"
-          : "Invoice saved & inventory updated"
-      );
-
+      toast.success("Invoice saved");
       setShowForm(false);
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast.error("Failed to save invoice");
     }
   };
 
-  /* ---------------- DELETE INVOICE ---------------- */
-
-  const deleteInvoice = async (invoice) => {
-    if (!confirm("Delete this invoice?")) return;
-
-    try {
-      if (invoice.status === "Saved") {
-        for (const row of invoice.items) {
-          const selectedItem = items.find((i) => i.name === row.item);
-          if (!selectedItem) continue;
-
-          await updateInventory({
-            ownerId: authUser.uid,
-            itemId: selectedItem.id,
-            itemName: selectedItem.name,
-            unit: selectedItem.unit || "pcs",
-            change: Number(row.qty), // ➕ RESTORE
-            reason: "Invoice Deleted (Stock Reversal)",
-            refId: invoice.id,
-          });
-        }
-      }
-
-      await deleteDoc(doc(db, "invoices", invoice.id));
-
-      setInvoices((prev) => prev.filter((inv) => inv.id !== invoice.id));
-      toast.success("Invoice deleted successfully");
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to delete invoice");
+  /* ---------------- PDF EXPORT ---------------- */
+  const exportInvoicePDF = (inv) => {
+    if (inv.status !== "Saved") {
+      toast.error("Draft invoices cannot be downloaded");
+      return;
     }
+
+    if (!companyProfile) {
+      toast.error("Company profile not found");
+      return;
+    }
+
+    const doc = new jsPDF();
+    doc.text("INVOICE", 105, 10, { align: "center" });
+    doc.setFontSize(14);
+    doc.text(companyProfile.name, 14, 15);
+    doc.setFontSize(10);
+    doc.text(companyProfile.address, 14, 22);
+    doc.text(`Phone: ${companyProfile.phone}`, 14, 28);
+    doc.text(`Email: ${companyProfile.email}`, 14, 34);
+
+    doc.line(14, 38, 195, 38);
+
+    doc.setFontSize(16);
+    
+
+    doc.setFontSize(11);
+    doc.text(`Invoice No: ${inv.invoiceNo}`, 14, 60);
+    doc.text(`Date: ${inv.date}`, 14, 68);
+    doc.text(`Bill To: ${inv.customer}`, 14, 76);
+
+    let y = 90;
+    inv.items.forEach((i) => {
+      doc.text(
+        `${i.item}  |  Qty: ${i.qty}  |  Rate: ${i.rate}  |  Amount: ${
+          i.qty * i.rate
+        }`,
+        14,
+        y
+      );
+      y += 8;
+    });
+
+    y += 10;
+    doc.text(`Total: ₹${inv.total}`, 14, y);
+
+    y += 15;
+    doc.setFontSize(9);
+    doc.text(
+      "This is a digitally generated invoice. Signature not required.",
+      105,
+      y,
+      { align: "center" }
+    );
+
+    doc.save(`${inv.invoiceNo}.pdf`);
   };
 
-
   /* ---------------- UI ---------------- */
-    return (
+  return (
     <div className="bg-white rounded-xl shadow h-[calc(100vh-8rem)] flex flex-col">
       {/* HEADER */}
-      <div className="flex items-center justify-between px-6 py-4 border-b">
+      <div className="flex justify-between px-6 py-4 border-b">
         <h2 className="text-xl font-semibold">Invoices</h2>
         <button
           onClick={openNewInvoice}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg"
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex gap-2"
         >
           <Plus size={18} /> New Invoice
         </button>
       </div>
 
-      {/* LIST */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {invoices.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-gray-500">
-            You don’t have any invoices till now
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="border-b">
-              <tr>
-                <th>Invoice No</th>
-                <th>Customer</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Total</th>
-                <th className="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map((inv) => (
-                <tr key={inv.id} className="border-b">
-                  <td>{inv.invoiceNo}</td>
-                  <td>{inv.customer}</td>
-                  <td>{inv.date}</td>
-                  <td>
-                    <span
-                      className={`px-2 py-1 rounded text-xs ${
-                        inv.status === "Draft"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-green-100 text-green-700"
-                      }`}
-                    >
-                      {inv.status}
-                    </span>
-                  </td>
-                  <td>₹{inv.total}</td>
-                  <td className="text-right space-x-2">
-                    {inv.status === "Draft" && (
-                      <button onClick={() => editInvoice(inv)}>
-                        <Pencil size={16} />
-                      </button>
-                    )}
-                    <button onClick={() => deleteInvoice(inv)}>
-                      <Trash2 size={16} className="text-red-600" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      {/* SEARCH */}
+      <div className="p-6 flex gap-3">
+        <input
+          placeholder="Search invoice or customer"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border px-4 py-2 rounded-lg w-full"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="border px-4 py-2 rounded-lg w-40"
+        >
+          <option value="All">All</option>
+          <option value="Draft">Draft</option>
+          <option value="Saved">Saved</option>
+        </select>
       </div>
 
-      {/* FORM */}
+      {/* TABLE */}
+      <div className="flex-1 overflow-auto px-6">
+        <table className="min-w-full text-sm">
+          <thead className="bg-indigo-50">
+            <tr>
+              <th className="px-3 py-2 text-left">Invoice</th>
+              <th className="text-left">Customer</th>
+              <th className="text-left">Status</th>
+              <th className="text-left">Total</th>
+              <th className="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredInvoices.map((inv) => (
+              <tr key={inv.id} className="border-b hover:bg-indigo-50">
+                <td className="px-3 py-2">{inv.invoiceNo}</td>
+                <td>{inv.customer}</td>
+                <td><span
+    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
+      ${
+        inv.status === "Draft"
+          ? "bg-yellow-100 text-yellow-700"
+          : "bg-green-100 text-green-700"
+      }`}
+  >
+    {inv.status}
+  </span></td>
+                <td>₹{inv.total}</td>
+                <td className="text-right space-x-2">
+                  <button onClick={() => exportInvoicePDF(inv)}>📄</button>
+                  {inv.status === "Draft" && (
+                    <button onClick={() => editInvoice(inv)}>
+                      <Pencil size={16} />
+                    </button>
+                  )}
+                  <button onClick={() => deleteInvoice(inv)}>
+                    <Trash2 size={16} className="text-red-600" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* FORM MODAL */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-          <div className="bg-white w-full max-w-4xl rounded-xl p-6 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white w-full max-w-4xl rounded-xl p-6">
             <div className="flex justify-between mb-4">
-              <h3 className="text-lg font-semibold">Invoice</h3>
+              <h3 className="text-lg font-semibold">
+                {editingInvoice ? "Edit Invoice" : "New Invoice"}
+              </h3>
               <button onClick={() => setShowForm(false)}>
                 <X />
               </button>
             </div>
 
             {/* BASIC INFO */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <select
                 value={invoiceData.customer}
                 onChange={(e) =>
                   setInvoiceData({ ...invoiceData, customer: e.target.value })
                 }
-                className="border p-2 rounded"
+                className="border p-2 rounded-lg"
               >
                 <option value="">Select Customer</option>
                 {customers.map((c) => (
@@ -335,36 +367,45 @@ export default function Invoices() {
                 ))}
               </select>
 
-              <input disabled value={invoiceData.invoiceNo} className="border p-2 rounded" />
+              <input
+                value={invoiceData.invoiceNo}
+                disabled
+                className="border p-2 rounded-lg bg-gray-100"
+              />
+
               <input
                 type="date"
                 value={invoiceData.date}
                 onChange={(e) =>
                   setInvoiceData({ ...invoiceData, date: e.target.value })
                 }
-                className="border p-2 rounded"
+                className="border p-2 rounded-lg"
               />
             </div>
 
             {/* ITEMS */}
-            <table className="w-full mb-4">
-              <thead>
+            <table className="w-full mb-6 text-sm">
+              <thead className="bg-gray-100">
                 <tr>
-                  <th>Item</th>
-                  <th>Qty</th>
-                  <th>Rate</th>
-                  <th>Amount</th>
+                  <th className="p-2 text-left">Item</th>
+                  <th className="p-2">Qty</th>
+                  <th className="p-2">Rate</th>
+                  <th className="p-2">Amount</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {invoiceData.items.map((row, i) => (
                   <tr key={i}>
-                    <td>
+                    <td className="p-2">
                       <select
                         value={row.item}
                         onChange={(e) =>
-                          handleItemChange(i, "item", e.target.value)
+                          setInvoiceData((prev) => {
+                            const updated = [...prev.items];
+                            updated[i].item = e.target.value;
+                            return { ...prev, items: updated };
+                          })
                         }
                         className="border p-2 rounded w-full"
                       >
@@ -376,39 +417,67 @@ export default function Invoices() {
                         ))}
                       </select>
                     </td>
-                    <td>
+
+                    <td className="p-2">
                       <input
                         type="number"
-                        value={row.qty}
                         min="1"
-                        required
+                        value={row.qty}
                         onChange={(e) =>
-                          handleItemChange(i, "qty", e.target.value)
+                          setInvoiceData((prev) => {
+                            const updated = [...prev.items];
+                            updated[i].qty = Number(e.target.value);
+                            return { ...prev, items: updated };
+                          })
                         }
                         className="border p-2 rounded w-20"
                       />
                     </td>
-                    <td>
+
+                    <td className="p-2">
                       <input
                         type="number"
                         value={row.rate}
                         onChange={(e) =>
-                          handleItemChange(i, "rate", e.target.value)
+                          setInvoiceData((prev) => {
+                            const updated = [...prev.items];
+                            updated[i].rate = Number(e.target.value);
+                            return { ...prev, items: updated };
+                          })
                         }
                         className="border p-2 rounded w-24"
                       />
                     </td>
-                    <td>₹{calculateAmount(row.qty, row.rate)}</td>
-                    <td className="flex gap-2">
-                      <button onClick={addItemRow}>
+
+                    <td className="p-2 font-semibold">₹{row.qty * row.rate}</td>
+
+                    <td className="p-2 flex gap-2">
+                      <button
+                        onClick={() =>
+                          setInvoiceData((prev) => ({
+                            ...prev,
+                            items: [
+                              ...prev.items,
+                              { item: "", qty: 1, rate: 0 },
+                            ],
+                          }))
+                        }
+                      >
                         <PlusCircle />
                       </button>
-                      <button
-                        disabled={invoiceData.items.length === 1}
-                        onClick={() => removeItemRow(i)}
-                      >
-                        <MinusCircle />
-                      </button>
+
+                      {invoiceData.items.length > 1 && (
+                        <button
+                          onClick={() =>
+                            setInvoiceData((prev) => ({
+                              ...prev,
+                              items: prev.items.filter((_, idx) => idx !== i),
+                            }))
+                          }
+                        >
+                          <MinusCircle />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -417,14 +486,23 @@ export default function Invoices() {
 
             {/* ACTIONS */}
             <div className="flex justify-end gap-3">
-              <button onClick={() => saveInvoice("Draft")} className="border px-4 py-2 rounded">
+              <button
+                onClick={() => setShowForm(false)}
+                className="border px-4 py-2 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => saveInvoice("Draft")}
+                className="border px-4 py-2 rounded-lg"
+              >
                 Draft
               </button>
-              <button onClick={() => saveInvoice("Saved")} className="bg-indigo-600 text-white px-4 py-2 rounded">
-                Save
-              </button>
-              <button onClick={() => setShowForm(false)} className="border px-4 py-2 rounded">
-                Cancel
+              <button
+                onClick={() => saveInvoice("Saved")}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg"
+              >
+                Save Invoice
               </button>
             </div>
           </div>

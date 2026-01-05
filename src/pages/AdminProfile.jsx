@@ -1,37 +1,120 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import { useSelector } from "react-redux";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db } from "../utils/firebaseConfig";
 
 export default function AdminProfile() {
+  const { authUser } = useSelector((state) => state.auth);
+
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+
   const [profile, setProfile] = useState({
-    name: "Admin User",
-    email: "admin@custofy.com",
-    phone: "9876543210",
+    name: "",
+    email: "",
+    phone: "",
   });
 
   const [formData, setFormData] = useState(profile);
-  const [editing, setEditing] = useState(false);
 
-  /* ---------------- Handlers ---------------- */
+  /* ---------------- LOAD PROFILE ---------------- */
+
+  useEffect(() => {
+    if (!authUser?.uid) return;
+
+    const fetchProfile = async () => {
+      try {
+        const ref = doc(db, "users", authUser.uid);
+        const snap = await getDoc(ref);
+
+        if (snap.exists()) {
+          const data = snap.data();
+          setProfile({
+            name: data.name || "",
+            email: data.email || authUser.email,
+            phone: data.phone || "",
+          });
+          setFormData({
+            name: data.name || "",
+            email: data.email || authUser.email,
+            phone: data.phone || "",
+          });
+        } else {
+          // First time login → create profile
+          const newProfile = {
+            name: authUser.displayName || "",
+            email: authUser.email,
+            phone: "",
+            createdAt: serverTimestamp(),
+          };
+
+          await setDoc(ref, newProfile);
+
+          setProfile(newProfile);
+          setFormData(newProfile);
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to load profile");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [authUser]);
+
+  /* ---------------- HANDLERS ---------------- */
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name || !formData.email || !formData.phone) {
       toast.error("All fields are required");
       return;
     }
 
-    setProfile(formData);
-    setEditing(false);
-    toast.success("Profile updated successfully");
+    try {
+      const ref = doc(db, "users", authUser.uid);
+
+      await setDoc(
+        ref,
+        {
+          ...formData,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      setProfile(formData);
+      setEditing(false);
+      toast.success("Profile updated successfully");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update profile");
+    }
   };
 
   const handleCancel = () => {
     setFormData(profile);
     setEditing(false);
   };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow p-6">
+        Loading profile...
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-xl shadow h-[calc(100vh-8rem)] p-6 max-w-3xl">
@@ -60,8 +143,7 @@ export default function AdminProfile() {
           name="email"
           type="email"
           value={formData.email}
-          onChange={handleChange}
-          disabled={!editing}
+          disabled
         />
 
         <Input
