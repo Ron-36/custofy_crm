@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Plus,
-  X,
-  Pencil,
-  Trash2,
-  Search,
-} from "lucide-react";
+import { Plus, X, Pencil, Trash2, Search } from "lucide-react";
 import {
   collection,
   addDoc,
@@ -111,11 +105,7 @@ export default function Items() {
           createdAt: serverTimestamp(),
         });
 
-        setItems((prev) => [
-          ...prev,
-          { id: docRef.id, ...formData },
-        ]);
-
+        setItems((prev) => [...prev, { id: docRef.id, ...formData }]);
         toast.success("Item added successfully");
       }
 
@@ -154,10 +144,8 @@ export default function Items() {
   return (
     <div className="bg-white rounded-xl shadow h-[calc(100vh-8rem)] flex flex-col">
       {/* HEADER */}
-      <div className="flex items-center justify-between px-6 py-4 border-b gap-4">
-        <h2 className="text-xl font-semibold text-gray-800">
-          Items
-        </h2>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-6 py-4 border-b gap-4">
+        <h2 className="text-xl font-semibold text-gray-800">Items</h2>
 
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -190,39 +178,49 @@ export default function Items() {
             <p className="text-sm mt-1">Add an item to get started</p>
           </div>
         ) : (
-          <table className="w-full text-sm border-collapse">
-            <thead className="sticky top-0 bg-white z-10">
-              <tr className="border-b text-left text-gray-600">
-                <th className="py-2">Item Name</th>
-                <th>Unit</th>
-                <th className="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredItems.map((item) => (
-                <tr key={item.id} className="border-b">
-                  <td className="py-2 font-medium">{item.name}</td>
-                  <td>{item.unit}</td>
-                  <td className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => openEditForm(item)}
-                        className="p-2 hover:bg-indigo-50 text-indigo-600 rounded"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="p-2 hover:bg-red-50 text-red-600 rounded"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border rounded-lg overflow-hidden">
+              <thead className="bg-gray-50 text-gray-600 text-sm">
+                <tr>
+                  <th className="px-4 py-3 text-left">Item Name</th>
+                  <th className="px-4 py-3 text-left">Unit</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredItems.map((item, index) => (
+                  <tr
+                    key={item.id}
+                    className={`border-t text-sm hover:bg-indigo-50
+                    }`}
+                  >
+                    <td className="px-4 py-3 font-medium text-gray-800">
+                      {item.name}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {item.unit}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => openEditForm(item)}
+                          className="p-2 rounded-md text-indigo-600 hover:bg-indigo-100"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="p-2 rounded-md text-red-600 hover:bg-red-100"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -240,15 +238,31 @@ export default function Items() {
             </div>
 
             <div className="space-y-4">
-              <Input label="Item Name" name="name" value={formData.name} onChange={handleChange} />
-              <Input label="Unit" name="unit" value={formData.unit} onChange={handleChange} />
+              <Input
+                label="Item Name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+              />
+              <Input
+                label="Unit"
+                name="unit"
+                value={formData.unit}
+                onChange={handleChange}
+              />
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
-              <button onClick={closeForm} className="px-4 py-2 border rounded-lg">
+              <button
+                onClick={closeForm}
+                className="px-4 py-2 border rounded-lg"
+              >
                 Cancel
               </button>
-              <button onClick={handleSave} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">
+              <button
+                onClick={handleSave}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg"
+              >
                 {editingItem ? "Update" : "Add"}
               </button>
             </div>
