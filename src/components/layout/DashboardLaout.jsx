@@ -6,7 +6,7 @@ import Header from "./Header";
 
 export default function DashboardLayout() {
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
+    <div className="flex h-screen bg-gray-100 overflow-x-auto ">
       {/* Sidebar */}
       <Sidebar />
 
@@ -16,8 +16,8 @@ export default function DashboardLayout() {
         <Header />
 
         {/* Page Content */}
-        <main className="flex-1 p-6 overflow-y-auto">
-          <Outlet />
+        <main className="flex-1 p-6 overflow-y-auto overscroll-none ">
+            <Outlet />
         </main>
       </div>
     </div>
