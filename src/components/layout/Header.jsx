@@ -20,7 +20,7 @@ const dispatch = useDispatch();
 
       <button
         onClick={handleLogout}
-        className="px-3 py-2 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600"
+        className="px-3 py-2 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600 cursor-pointer"
       >
         Logout
       </button>

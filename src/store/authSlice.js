@@ -19,11 +19,14 @@ export const listenToAuthChanges = createAsyncThunk(
           if (snap.exists()) {
             const data = snap.data();
 
-            // 🔥 CONVERT FIRESTORE TIMESTAMP → STRING
+            // CONVERT FIRESTORE TIMESTAMP → STRING
             profile = {
               ...data,
               createdAt: data.createdAt
                 ? data.createdAt.toDate().toISOString()
+                : null,
+              updatedAt: data.updatedAt
+                ? data.updatedAt.toDate().toISOString()
                 : null,
             };
           }
@@ -67,7 +70,7 @@ const authSlice = createSlice({
   name: "auth",
   initialState: {
     authUser: null, // { uid, email }
-    profile: null,  // admin profile (serializable)
+    profile: null, // admin profile (serializable)
     loading: true,
   },
   reducers: {

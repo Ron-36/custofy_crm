@@ -140,7 +140,7 @@ export default function Customers() {
 
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg"
+            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg cursor-pointer"
           >
             <Plus size={18} />
             Add Customer
@@ -175,13 +175,13 @@ export default function Customers() {
                   <td className="text-right">
                     <button
                       onClick={() => handleEdit(c)}
-                      className="p-2 text-indigo-600"
+                      className="p-2 text-indigo-600 cursor-pointer"
                     >
                       <Pencil size={16} />
                     </button>
                     <button
                       onClick={() => handleDelete(c.id)}
-                      className="p-2 text-red-600"
+                      className="p-2 text-red-600 cursor-pointer"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -209,10 +209,10 @@ export default function Customers() {
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
-              <button onClick={closeForm} className="px-4 py-2 border rounded-lg">
+              <button onClick={closeForm} className="px-4 py-2 border rounded-lg cursor-pointer">
                 Cancel
               </button>
-              <button onClick={handleSave} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">
+              <button onClick={handleSave} className="px-4 py-2 bg-indigo-600 text-white rounded-lg cursor-pointer">
                 {editingCustomer ? "Update" : "Save"}
               </button>
             </div>

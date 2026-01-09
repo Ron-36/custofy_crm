@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, X, Trash2, Pencil, MinusCircle, PlusCircle } from "lucide-react";
+import { Plus, X, Trash2, Pencil, MinusCircle, PlusCircle,Download  } from "lucide-react";
 import jsPDF from "jspdf";
 import { toast } from "react-toastify";
 import {
@@ -321,14 +321,14 @@ export default function Invoices() {
   </span></td>
                 <td>₹{inv.total}</td>
                 <td className="text-right space-x-2">
-                  <button onClick={() => exportInvoicePDF(inv)}>📄</button>
+                  <button className="cursor-pointer " onClick={() => exportInvoicePDF(inv)}> <Download size={15} /></button>
                   {inv.status === "Draft" && (
                     <button onClick={() => editInvoice(inv)}>
                       <Pencil size={16} />
                     </button>
                   )}
                   <button onClick={() => deleteInvoice(inv)}>
-                    <Trash2 size={16} className="text-red-600" />
+                    <Trash2 size={16} className="text-red-600 cursor-pointer " />
                   </button>
                 </td>
               </tr>
@@ -345,7 +345,7 @@ export default function Invoices() {
               <h3 className="text-lg font-semibold">
                 {editingInvoice ? "Edit Invoice" : "New Invoice"}
               </h3>
-              <button onClick={() => setShowForm(false)}>
+              <button className="cursor-pointer" onClick={() => setShowForm(false)}>
                 <X />
               </button>
             </div>
