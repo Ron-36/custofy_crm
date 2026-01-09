@@ -63,7 +63,7 @@ export default function Contact() {
 
         <button
           type="submit"
-          className="bg-indigo-600 text-white py-3 rounded-lg"
+          className="bg-indigo-600 text-white py-3 rounded-lg cursor-pointer"
         >
           Send Message
         </button>

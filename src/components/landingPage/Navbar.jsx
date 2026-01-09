@@ -12,8 +12,10 @@ export default function Navbar() {
         shadow-sm
       "
     >
-      <h1 className="text-2xl font-bold text-indigo-600">
+      <h1 className="text-2xl font-bold text-indigo-600 cursor-pointer">
+        <a href="#herosection">
         Custofy CRM
+        </a>
       </h1>
 
       <ul className="hidden md:flex gap-6 text-gray-800 font-medium">
@@ -38,8 +40,8 @@ export default function Navbar() {
           </a>
         </li>
       </ul>
-      <Link to="/registration">
-      <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition">
+      <Link to="/login">
+      <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition cursor-pointer">
         Get Started
       </button>
       </Link>
