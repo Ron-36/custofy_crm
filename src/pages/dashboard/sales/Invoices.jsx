@@ -132,6 +132,15 @@ export default function Invoices() {
       return;
     }
 
+    const hasEmptyItem = invoiceData.items.some(
+    (item) => !item.item || item.item === ""
+  );
+
+  if (hasEmptyItem) {
+    toast.error("Please select an item");
+    return;
+  }
+
     try {
       if (status === "Saved") {
         for (const row of invoiceData.items) {
@@ -388,9 +397,9 @@ export default function Invoices() {
               <thead className="bg-gray-100">
                 <tr>
                   <th className="p-2 text-left">Item</th>
-                  <th className="p-2">Qty</th>
-                  <th className="p-2">Rate</th>
-                  <th className="p-2">Amount</th>
+                  <th className="p-2 text-left">Qty</th>
+                  <th className="p-2 text-left">Rate</th>
+                  <th className="p-2 text-left">Amount</th>
                   <th></th>
                 </tr>
               </thead>
@@ -399,7 +408,8 @@ export default function Invoices() {
                   <tr key={i}>
                     <td className="p-2">
                       <select
-                        value={row.item}
+                        value={row.item || ""}
+                        required   
                         onChange={(e) =>
                           setInvoiceData((prev) => {
                             const updated = [...prev.items];
@@ -408,8 +418,9 @@ export default function Invoices() {
                           })
                         }
                         className="border p-2 rounded w-full"
+                      
                       >
-                        <option value="">Select</option>
+                        <option value="" disabled>Select</option>
                         {items.map((it) => (
                           <option key={it.id} value={it.name}>
                             {it.name}

@@ -139,11 +139,18 @@ export default function Bills() {
   };
 
   const saveBill = async () => {
-    if (!billData.vendor || !billData.billNo) {
+    if (!billData.vendor || !billData.billNo ) {
       toast.error("Please fill vendor and bill number");
       return;
     }
+    const hasEmptyItem = billData.items.some(
+  (row) => !row.item || row.item === ""
+);
 
+if (hasEmptyItem) {
+  toast.error("Please select item in all rows");
+  return;
+}
     try {
       let billId;
 
@@ -353,13 +360,14 @@ export default function Bills() {
                   <tr key={i}>
                     <td>
                       <select
-                        value={row.item}
+                        value={row.item || ""}
+                        required
                         onChange={(e) =>
                           handleItemChange(i, "item", e.target.value)
                         }
                         className="border p-2 rounded w-full"
                       >
-                        <option value="">Select</option>
+                        <option value="" disabled>Select</option>
                         {items.map((it) => (
                           <option key={it.id} value={it.name}>
                             {it.name}

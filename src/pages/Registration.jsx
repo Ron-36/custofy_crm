@@ -63,8 +63,31 @@ const handleRegister = async (e) => {
     toast.success("Registration successful");
     navigate("/dashboard");
   } catch (error) {
-    toast.error(error.message);
+  let message = "Something went wrong";
+
+  switch (error.code) {
+    case "auth/email-already-in-use":
+      message = "This email is already registered";
+      break;
+
+    case "auth/invalid-email":
+      message = "Invalid email format";
+      break;
+
+    case "auth/weak-password":
+      message = "Password should be at least 6 characters";
+      break;
+
+    case "auth/network-request-failed":
+      message = "Network error, please try again";
+      break;
+
+    default:
+      message = "Registration failed, please try again";
   }
+
+  toast.error(message);
+}
 };
 
 

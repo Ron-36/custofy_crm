@@ -11,7 +11,7 @@ export default function Contact() {
       .sendForm(
         "service_53hno1l",
         "template_4buhi8r",
-        formRef.current,
+        formRef.current, 
         "zGPCKrxWzxaT4mC7G"
       )
       .then(
