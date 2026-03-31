@@ -29,7 +29,7 @@ This project focuses on clean UI, smooth user experience, and scalable architect
 
 🌐 Live Demo
 
-🔗 Live URL: https://your-project.web.app
+🔗 Live URL: https://custofy-crm.web.app/
 
 ---
 
@@ -46,6 +46,6 @@ This project focuses on clean UI, smooth user experience, and scalable architect
 👨‍💻 Author
 
 Ronak Somaiya
-Frontend Developer | React | UI/UX
+Frontend Developer | React 
 
 GitHub: https://github.com/Ron-36
