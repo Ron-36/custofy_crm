@@ -23,7 +23,7 @@ This project focuses on clean UI, smooth user experience, and scalable architect
 - **Backend / DB:** Firebase Firestore
 - **Authentication:** Firebase Auth
 - **Icons:** Lucide React
-- **Hosting:** Firebase Hosting / Vercel
+- **Hosting:** Firebase Hosting
 
 ---
 
